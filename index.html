@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Motors &amp; Generators: Interactive Lab</title>
+<style>
+:root{--bg:#f2f6f3;--card:#fff;--ink:#1c2b33;--mute:#5b6b73;--line:#d3ddd8;--red:#d6453d;--blue:#2f6fd0;--green:#2a9d58;--yellow:#e8a800;--accent:#2a9d58;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a1f;--card:#1b262d;--ink:#e8f0ee;--mute:#9fb0b6;--line:#2c3b43;--red:#ef6a60;--blue:#5b97ee;--green:#46c27a;--yellow:#ffc928;--accent:#46c27a}}
+:root[data-theme="dark"]{--bg:#121a1f;--card:#1b262d;--ink:#e8f0ee;--mute:#9fb0b6;--line:#2c3b43;--red:#ef6a60;--blue:#5b97ee;--green:#46c27a;--yellow:#ffc928;--accent:#46c27a}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
+main{max-width:880px;margin:0 auto;padding:18px 14px 40px}
+h1{font-size:1.6rem;margin:0 0 4px}
+p.sub{margin:0 0 14px;color:var(--mute)}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button{flex:1;padding:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
+.tabs button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.tabs button:focus-visible,input:focus-visible,.crank:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.stage{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px}
+canvas{width:100%;height:auto;display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.panel h2{font-size:1rem;margin:0 0 8px}
+label{display:flex;justify-content:space-between;font-size:.92rem;margin-top:10px}
+label b{font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.meter{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.92rem}
+.bar{flex:1;height:12px;background:var(--line);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--yellow)}
+.bar.g i{background:var(--green)}
+.meter span:first-child{width:92px}
+#why{margin:0;font-size:.95rem}
+.hint{color:var(--mute);font-size:.85rem;margin-top:8px}
+
+section.notes{margin-top:26px}
+section.notes h2{font-size:1.25rem;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+.card h3{margin:0 0 6px;font-size:1.05rem}
+.card ul{margin:6px 0 0;padding-left:20px}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-weight:700;margin:8px 0}
+.flow span{padding:6px 10px;border:2px solid var(--line);border-radius:10px}
+.flow .in{border-color:var(--yellow)}.flow .out{border-color:var(--green)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.two{grid-template-columns:1fr}}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:480px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+th{background:var(--bg)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.opt{display:block;width:100%;text-align:left;margin-top:8px;padding:10px 12px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font:inherit;cursor:pointer}
+.opt:focus-visible,.nx:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.opt.ok{border-color:var(--green);background:color-mix(in srgb,var(--green) 18%,var(--card))}
+.opt.no{border-color:var(--red);background:color-mix(in srgb,var(--red) 16%,var(--card))}
+.nx{margin-top:12px;padding:10px 16px;border:0;border-radius:10px;background:var(--accent);color:#08140c;font:inherit;font-weight:700;cursor:pointer}
+#fb{margin:10px 0 0;font-size:.95rem}
+#qp{color:var(--mute);font-size:.9rem;margin:0 0 4px}
+</style>
+</head>
+<body>
+<main>
+<h1>Motors &amp; generators lab</h1>
+<p class="sub">Twins working in reverse. Pick one, then change the sliders and watch what happens. Scroll down for the notes and a quiz.</p>
+
+<div class="tabs" role="group" aria-label="Choose a machine">
+  <button id="bm" aria-pressed="true">Motor: electricity in, spinning out</button>
+  <button id="bg" aria-pressed="false">Generator: spinning in, electricity out</button>
+</div>
+
+<div class="stage"><canvas id="c" width="720" height="380" role="img" aria-label="Animated wire loop spinning between a north and a south magnet"></canvas></div>
+
+<div class="grid">
+  <div class="panel">
+    <h2>Controls</h2>
+    <label for="inp"><span id="inpL">Battery voltage</span><b id="inpV"></b></label>
+    <input id="inp" type="range" min="0" max="12" step="0.5" value="6">
+    <label for="mag">Magnet strength<b id="magV"></b></label>
+    <input id="mag" type="range" min="1" max="10" step="1" value="5">
+    <label for="turns">Loops of wire<b id="turnsV"></b></label>
+    <input id="turns" type="range" min="1" max="10" step="1" value="3">
+    <p class="hint" id="hint"></p>
+  </div>
+  <div class="panel">
+    <h2>Readouts</h2>
+    <div class="meter"><span>Electricity</span><div class="bar"><i id="eBar"></i></div><b id="eTxt"></b></div>
+    <div class="meter"><span>Spinning</span><div class="bar g"><i id="sBar"></i></div><b id="sTxt"></b></div>
+    <h2 style="margin-top:16px">What’s happening?</h2>
+    <p id="why"></p>
+  </div>
+</div>
+
+<section class="notes" aria-label="Study notes">
+<h2>🤝 The big secret: magnets and electricity are best friends</h2>
+<div class="card"><ul>
+<li>Electricity can create a magnetic push.</li>
+<li>Moving magnets near wires can create electricity.</li>
+</ul><p style="margin:8px 0 0">Motors and generators are basically twins working in reverse!</p></div>
+
+<div class="card"><h3>1. The electric motor (the “mover”) ⚙️</h3>
+<p style="margin:0">An electric motor takes electricity and turns it into movement (spinning).</p>
+<div class="flow"><span class="in">⚡ Electricity IN</span>➡️<span>🧲 Magnets push &amp; pull</span>➡️<span class="out">🌀 Spinning OUT</span></div>
+<p><b>What happens inside?</b> Electricity flows from a battery into a loop of wire. That wire turns into a temporary magnet. The big permanent magnets (N and S) push and pull on the wire, making it spin!</p>
+<p style="margin:0"><b>Where do you see it?</b></p>
+<ul><li>🌬️ Ceiling fans</li><li>🥤 Blenders</li><li>🚗 Remote-control toy cars</li><li>🧺 Washing machines</li></ul></div>
+
+<div class="card"><h3>2. The electric generator (the “power maker”) 💡</h3>
+<p style="margin:0">An electric generator does the exact opposite. It takes movement (spinning) and turns it into electricity.</p>
+<div class="flow"><span class="in">🌀 Spinning IN</span>➡️<span>🧲 Wires cross magnets</span>➡️<span class="out">⚡ Electricity OUT</span></div>
+<p><b>What happens inside?</b> Wind, falling water, or your hand spins a loop of wire between two magnets (N and S). As the wire cuts through the invisible magnetic field, it pushes tiny electric charges through the wire, creating electricity!</p>
+<p style="margin:0"><b>Where do you see it?</b></p>
+<ul><li>🌬️ Giant wind turbines</li><li>🌊 Water dams (hydroelectric power)</li><li>🚲 Bicycle lights (the spinning wheel powers the headlight)</li><li>🔦 Hand-crank emergency flashlights</li></ul></div>
+
+<div class="card"><h3>⚖️ Side-by-side comparison</h3>
+<div class="tw"><table>
+<tr><th>Feature</th><th>⚙️ Electric motor</th><th>💡 Electric generator</th></tr>
+<tr><td><b>What goes IN?</b></td><td>⚡ Electricity</td><td>🌀 Movement (spinning)</td></tr>
+<tr><td><b>What comes OUT?</b></td><td>🌀 Movement (spinning)</td><td>⚡ Electricity</td></tr>
+<tr><td><b>Energy change</b></td><td>Electrical ➡️ Mechanical</td><td>Mechanical ➡️ Electrical</td></tr>
+<tr><td><b>Easy examples</b></td><td>Fan, toy car, drill</td><td>Wind turbine, dam, hand-crank light</td></tr>
+</table></div></div>
+
+<div class="two">
+<div class="card"><h3>🧠 Super easy memory trick</h3><ul>
+<li><b>Motor</b> = Makes Movement 🌀</li>
+<li><b>Generator</b> = Generates Electricity ⚡</li></ul></div>
+<div class="card"><h3>✏️ Quick 3-color drawing activity</h3>
+<p style="margin:0 0 6px">Use three colors in your notebook:</p><ul>
+<li><span class="sw" style="background:var(--red)"></span><span class="sw" style="background:var(--blue)"></span>Magnets (N and S) in red and blue</li>
+<li><span class="sw" style="background:var(--green)"></span>Spinning arrows 🔄 in green (movement)</li>
+<li><span class="sw" style="background:var(--yellow)"></span>Lightning bolts ⚡ in yellow (electricity)</li></ul>
+<p style="margin:8px 0 0"><b>Motor:</b> yellow going in, green coming out. <b>Generator:</b> green going in, yellow coming out.</p></div>
+</div>
+
+<h2 style="margin-top:28px">📝 Check what you learned</h2>
+<div class="card" id="quiz" aria-live="polite"></div>
+</section>
+</main>
+
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+let mode='motor',phi=0,omega=0,t0=performance.now(),wave=[],dots=0,emf=0,cur=0;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function setMode(m){
+  mode=m;
+  $('bm').setAttribute('aria-pressed',m==='motor');$('bg').setAttribute('aria-pressed',m==='gen');
+  const i=$('inp');
+  if(m==='motor'){$('inpL').textContent='Battery voltage';i.max=12;i.step=.5;i.value=6;
+    $('hint').textContent='More volts, stronger magnets or more loops all make the fan spin faster.';}
+  else{$('inpL').textContent='Crank speed';i.max=10;i.step=.5;i.value=4;
+    $('hint').textContent='Crank faster, use stronger magnets or add loops to light the bulb brighter.';}
+  wave=[];omega=m==='gen'?0:omega;upd();
+}
+$('bm').onclick=()=>setMode('motor');$('bg').onclick=()=>setMode('gen');
+['inp','mag','turns'].forEach(id=>$(id).addEventListener('input',upd));
+function upd(){
+  $('inpV').textContent=mode==='motor'?$('inp').value+' V':$('inp').value+' / 10';
+  $('magV').textContent=$('mag').value;$('turnsV').textContent=$('turns').value;
+}
+
+function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
+function txt(s,x,y,col,size,al){ctx.fillStyle=col;ctx.font='700 '+size+'px "Trebuchet MS",system-ui,sans-serif';ctx.textAlign=al||'center';ctx.fillText(s,x,y)}
+
+function frame(now){
+  const dt=Math.min(.05,(now-t0)/1000);t0=now;
+  const v=+$('inp').value,B=+$('mag').value,N=+$('turns').value;
+  if(mode==='motor'){const target=v*B*N*0.11;omega+=(target-omega)*Math.min(1,dt*2.2);}
+  else{omega=v*1.6;}
+  phi+=omega*dt;
+  // electricity: generator emf alternates; motor current ~ volts
+  if(mode==='gen'){emf=B*N*omega*Math.sin(phi)*0.06;cur=Math.abs(emf);}
+  else{emf=v;cur=v;}
+  wave.push(mode==='gen'?emf:0);if(wave.length>180)wave.shift();
+  dots+=(mode==='gen'?emf:v)*dt*6;
+  draw(B,N,v);
+  const eMax=mode==='gen'?B*N*16*0.06:12,sMax=mode==='gen'?16:12*10*10*0.11;
+  $('eBar').style.width=Math.min(100,Math.abs(cur)/(mode==='gen'?10:12)*100)+'%';
+  $('sBar').style.width=Math.min(100,omega/(mode==='gen'?16:Math.max(1,sMax))*100)+'%';
+  $('eTxt').textContent=(mode==='gen'?Math.abs(emf).toFixed(1):v.toFixed(1))+' V';
+  $('sTxt').textContent=(omega/6.283*60).toFixed(0)+' rpm';
+  $('why').textContent=mode==='motor'
+    ? (v===0?'No electricity, so no magnetic push. Turn up the battery!':'Current makes the loop a temporary magnet. The N and S magnets push and pull it around, so it spins and turns the fan.')
+    : (v===0?'Nothing is spinning, so no electricity. Crank it!':'Spinning the loop makes its wires cut through the magnetic field. That pushes charges along the wire and lights the bulb. When the loop looks widest it cuts the field fastest.');
+  requestAnimationFrame(frame);
+}
+
+function draw(B,N,v){
+  const W=720,H=380,red=css('--red'),blue=css('--blue'),green=css('--green'),yel=css('--yellow'),ink=css('--ink'),mute=css('--mute'),line=css('--line');
+  ctx.clearRect(0,0,W,H);
+  const cx=300,cy=215,mh=170,mw=64;
+  // field lines
+  ctx.strokeStyle=mute;ctx.globalAlpha=.35;ctx.lineWidth=1.5;
+  const lines=Math.round(2+B*0.7);
+  for(let k=0;k<lines;k++){const y=cy-mh/2+12+k*(mh-24)/(lines-1||1);ctx.beginPath();ctx.moveTo(cx-130+mw/2-34,y);ctx.lineTo(cx+130-mw/2+34,y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+14,y-5);ctx.lineTo(cx+4,y);ctx.lineTo(cx+14,y+5);ctx.stroke();}
+  ctx.globalAlpha=1;
+  // magnets
+  rr(cx-190,cy-mh/2,mw+10,mh,10);ctx.fillStyle=red;ctx.fill();txt('N',cx-190+(mw+10)/2,cy+12,'#fff',36);
+  rr(cx+126,cy-mh/2,mw+10,mh,10);ctx.fillStyle=blue;ctx.fill();txt('S',cx+126+(mw+10)/2,cy+12,'#fff',36);
+  // axle
+  ctx.strokeStyle=ink;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(cx,cy-95);ctx.lineTo(cx,cy+95);ctx.stroke();
+  // loop (projected width)
+  const w=Math.sin(phi)*72,top=cy-62,bot=cy+62;
+  ctx.lineWidth=3+Math.min(3,N*.3);ctx.lineJoin='round';
+  ctx.strokeStyle=mode==='gen'?yel:green;
+  for(let k=0;k<Math.min(N,5);k++){const o=k*4;ctx.beginPath();ctx.moveTo(cx-w,top+o);ctx.lineTo(cx+w,top+o);ctx.lineTo(cx+w,bot-o);ctx.lineTo(cx-w,bot-o);ctx.closePath();ctx.stroke();}
+  // moving charges on the cutting sides
+  const dir=mode==='gen'?Math.sign(Math.sin(phi)||1)*Math.sign(emf||1):1;
+  ctx.fillStyle=yel;
+  const nd=Math.min(8,Math.round(cur*0.8));
+  for(let k=0;k<nd;k++){const p=((dots*dir*0.15+k/nd)%1+1)%1;
+    ctx.beginPath();ctx.arc(cx+w,top+10+p*(bot-top-20),4.5,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(cx-w,bot-10-p*(bot-top-20),4.5,0,7);ctx.fill();}
+  // lead wires to device on the right
+  ctx.strokeStyle=line;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx,cy-95);ctx.lineTo(cx,cy-120);ctx.lineTo(560,cy-120);ctx.lineTo(560,cy-70);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy+95);ctx.lineTo(cx,cy+120);ctx.lineTo(560,cy+120);ctx.lineTo(560,cy+70);ctx.stroke();
+  if(mode==='motor'){
+    // battery
+    rr(520,cy-70,80,140,10);ctx.fillStyle=css('--card');ctx.fill();ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.stroke();
+    ctx.fillStyle=green;rr(526,cy+70-6-Math.max(4,v/12*120),68,Math.max(4,v/12*120),6);ctx.fill();
+    txt('+',560,cy-48,ink,22);txt(v.toFixed(1)+' V',560,cy+6,ink,18);txt('Battery',560,cy+100+30,mute,14);
+    // fan on left top: drawn bottom center
+    fan(110,60,phi*1.0,green);txt('Fan',110,118,mute,14);
+  }else{
+    // bulb
+    const br=Math.min(1,cur/10);
+    const g=ctx.createRadialGradient(560,cy,6,560,cy,24+br*70);
+    g.addColorStop(0,'rgba(255,214,60,'+(0.15+br*.85)+')');g.addColorStop(1,'rgba(255,214,60,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(560,cy,24+br*70,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(560,cy,30,0,7);ctx.fillStyle='rgba(255,210,50,'+(0.15+br*.85)+')';ctx.fill();ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.stroke();
+    ctx.fillRect(548,cy+28,24,10);txt('Bulb',560,cy+150,mute,14);
+    // crank handle
+    ctx.strokeStyle=mute;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(cx,cy-95);ctx.lineTo(cx,cy-110);ctx.stroke();
+    const hx=110+Math.cos(phi)*30,hy=70+Math.sin(phi)*30;ctx.beginPath();ctx.arc(110,70,30,0,7);ctx.lineWidth=2;ctx.strokeStyle=line;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(110,70);ctx.lineTo(hx,hy);ctx.lineWidth=5;ctx.strokeStyle=ink;ctx.stroke();ctx.beginPath();ctx.arc(hx,hy,8,0,7);ctx.fillStyle=green;ctx.fill();
+    txt('Crank',110,118,mute,14);
+    // waveform
+    const wx=18,wy=300,ww=190,wh=60;rr(wx,wy-wh/2-8,ww+16,wh+30,8);ctx.fillStyle=css('--bg');ctx.fill();
+    ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(wx+8,wy);ctx.lineTo(wx+ww+8,wy);ctx.stroke();
+    ctx.strokeStyle=yel;ctx.lineWidth=2.5;ctx.beginPath();
+    wave.forEach((e,i)=>{const x=wx+8+i/180*ww,y=wy-e/10*wh/2;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
+    txt('Voltage over time',wx+8,wy+wh/2+12,mute,12,'left');
+  }
+  txt(mode==='motor'?'Electricity in → spinning out':'Spinning in → electricity out',W/2,28,ink,18);
+}
+function fan(x,y,a,col){
+  ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle=col;
+  for(let k=0;k<3;k++){ctx.rotate(2.094);ctx.beginPath();ctx.ellipse(0,-26,10,24,0,0,7);ctx.fill();}
+  ctx.beginPath();ctx.arc(0,0,7,0,7);ctx.fillStyle=css('--ink');ctx.fill();ctx.restore();
+}
+
+const QZ=[
+{q:'What does an electric motor turn electricity into?',o:['Light','Movement (spinning)','Magnets','Heat only'],a:1,w:'A motor changes electrical energy into mechanical energy, which is spinning.'},
+{q:'What goes IN to an electric generator?',o:['Electricity','Batteries','Movement (spinning)','Magnets only'],a:2,w:'A generator takes movement in and makes electricity.'},
+{q:'In a motor, what makes the loop of wire into a temporary magnet?',o:['Electricity flowing through it','The wind','Spinning it by hand','Painting it'],a:0,w:'Current in the wire creates a magnetic field, so the loop acts like a temporary magnet.'},
+{q:'In a generator, how is electricity made in the wire?',o:['By heating it','By the wire cutting through a magnetic field','By removing the magnets','By holding it still'],a:1,w:'Moving a wire through a magnetic field pushes charges along the wire.'},
+{q:'Which of these is a generator?',o:['Ceiling fan','Blender','Wind turbine','Washing machine'],a:2,w:'A wind turbine is spun by wind and produces electricity. The others are motors.'},
+{q:'Which of these is a motor?',o:['Hand-crank flashlight','Hydroelectric dam','Bicycle dynamo light','Remote-control toy car'],a:3,w:'A toy car uses electricity from its battery to make wheels spin.'},
+{q:'Which memory trick is correct?',o:['Motor = Makes Movement','Motor = Makes Magnets','Generator = Gets Motion','Generator = Glows Magnets'],a:0,w:'Motor makes movement. Generator generates electricity.'},
+{q:'In the lab, you turn the crank faster on the generator. What happens to the bulb?',o:['It gets dimmer','It gets brighter','Nothing changes','It turns into a fan'],a:1,w:'Faster spinning means the wire cuts the field faster, so more electricity and a brighter bulb.'},
+{q:'In the drawing activity, which colors do you use for a generator?',o:['Yellow in, green out','Green in, yellow out','Red in, blue out','Blue in, red out'],a:1,w:'Green is movement and yellow is electricity. A generator has movement in and electricity out.'}
+];
+let qi=0,qs=0,qa=false;
+function qRender(){
+  const el=document.getElementById('quiz');
+  if(qi>=QZ.length){
+    const msg=qs===QZ.length?'Perfect! You really understand motors and generators.':qs>=7?'Great work! Review the notes above for the ones you missed.':'Good start. Read the notes, play with the lab, and try again.';
+    el.innerHTML='<h3 style="margin:0 0 6px">Your score: '+qs+' / '+QZ.length+'</h3><p style="margin:0">'+msg+'</p><button class="nx" id="rs">Try again</button>';
+    document.getElementById('rs').onclick=()=>{qi=0;qs=0;qRender()};return;
+  }
+  const Q=QZ[qi];qa=false;
+  el.innerHTML='<p id="qp">Question '+(qi+1)+' of '+QZ.length+'</p><h3 style="margin:0">'+Q.q+'</h3>'+
+    Q.o.map((t,i)=>'<button class="opt" data-i="'+i+'">'+t+'</button>').join('')+'<p id="fb"></p>';
+  el.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    if(qa)return;qa=true;const i=+b.dataset.i;
+    el.querySelectorAll('.opt').forEach((x,j)=>{x.disabled=true;if(j===Q.a)x.classList.add('ok');});
+    if(i===Q.a){qs++;}else{b.classList.add('no');}
+    document.getElementById('fb').textContent=(i===Q.a?'Correct! ':'Not quite. ')+Q.w;
+    const n=document.createElement('button');n.className='nx';n.textContent=qi===QZ.length-1?'See my score':'Next question';
+    n.onclick=()=>{qi++;qRender()};el.appendChild(n);n.focus();
+  });
+}
+qRender();
+setMode('motor');requestAnimationFrame(frame);
+</script>
+</body>
+</html>
